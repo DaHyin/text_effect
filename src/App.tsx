@@ -17,8 +17,8 @@ const initialEffect: TextEffect = {
   fontSize: 48,
   fontFamily: 'Noto Sans KR',
   letterSpacing: 0,
-  paddingX: 30,
-  paddingY: 0,
+  gridCols: 25, // 가로 25칸 (600px)
+  gridRows: 17, // 세로 17칸 (408px, 그림자 등 여유 공간 포함)
   textColor: '#000000',
   useTextGradient: false,
   shadow: {

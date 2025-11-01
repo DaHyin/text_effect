@@ -1,54 +1,12 @@
 import type { TextEffect } from '../types';
 
+const GRID_SIZE = 24; // 24px 단위
+
 export function calculateCanvasSize(effect: TextEffect): { width: number; height: number } {
-  const tempCanvas = document.createElement('canvas');
-  const tempCtx = tempCanvas.getContext('2d');
+  // 칸수 기반으로 캔버스 크기 계산
+  const width = effect.gridCols * GRID_SIZE;
+  const height = effect.gridRows * GRID_SIZE;
   
-  if (!tempCtx) {
-    return { width: 400, height: 200 };
-  }
-
-  const paddingX = effect.paddingX; // 좌우 패딩
-  const paddingY = effect.paddingY; // 상하 패딩
-  const extraHeight = 60; // 그림자 등의 여유 공간
-
-  // 폰트 설정
-  tempCtx.font = `${effect.fontSize}px ${effect.fontFamily}`;
-  
-  // 텍스트 크기 측정 (자간 고려)
-  let textWidth: number;
-  if (effect.letterSpacing !== 0) {
-    const letters = effect.text.split('');
-    const extraSpacing = effect.letterSpacing * effect.fontSize; // em 단위를 px로 변환
-    
-    // 전체 텍스트 너비 계산
-    let totalWidth = 0;
-    letters.forEach((char) => {
-      tempCtx.textAlign = 'left';
-      totalWidth += tempCtx.measureText(char).width;
-    });
-    totalWidth += extraSpacing * (letters.length - 1);
-    textWidth = totalWidth;
-  } else {
-    const metrics = tempCtx.measureText(effect.text);
-    textWidth = metrics.width;
-  }
-  
-  const textHeight = effect.fontSize;
-
-  // 캔버스 크기 계산 (여백 포함)
-  let width = textWidth + paddingX * 2;
-  let height = textHeight + extraHeight + paddingY * 2;
-
-  // 배경 이미지가 있는 경우 이미지 크기도 고려
-  if (effect.backgroundImage?.enabled && effect.backgroundImage.imageUrl) {
-    // 이미지 크기를 동적으로 계산하려면 이미지 로드를 기다려야 함
-    // 일단 기본값으로 설정하고, Canvas 컴포넌트에서 실제 크기로 조정
-    const estimatedImageSize = 300; // 추정값 (Canvas에서 실제 크기로 조정됨)
-    width = Math.max(width, estimatedImageSize * effect.backgroundImage.scale + paddingX * 2);
-    height = Math.max(height, estimatedImageSize * effect.backgroundImage.scale + paddingY * 2);
-  }
-
   return { width, height };
 }
 
@@ -62,16 +20,13 @@ export function drawTextOnCanvas(
   // 투명 배경
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   
-  const paddingX = effect.paddingX;
-  const paddingY = effect.paddingY;
+  // 캔버스 중심 위치 (칸수 기반이므로 패딩 없이 전체 사용)
+  const centerX = canvas.width / 2;
+  const centerY = canvas.height / 2;
   
-  // 여백을 고려한 텍스트 영역
-  const textAreaWidth = canvas.width - paddingX * 2;
-  const textAreaHeight = canvas.height - paddingY * 2;
-  
-  // 여백을 고려한 텍스트 중심 위치
-  const centerX = paddingX + textAreaWidth / 2;
-  const centerY = paddingY + textAreaHeight / 2;
+  // 텍스트 영역 (전체 캔버스 사용)
+  const textAreaWidth = canvas.width;
+  const textAreaHeight = canvas.height;
   
   const maxWidth = textAreaWidth - 20; // 약간의 여유
 

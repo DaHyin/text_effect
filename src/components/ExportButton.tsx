@@ -17,24 +17,25 @@ export function ExportButton({ effect, scale = 1 }: ExportButtonProps) {
     const canvas = hiddenCanvasRef.current;
     if (!canvas) return;
 
-    // 다중 모드인 경우 고정 캔버스 크기 사용
+    // 칸수 기반으로 캔버스 크기 계산
+    const GRID_SIZE = 24;
     let width: number;
     let height: number;
     
     if (effect.textMode === 'multiple') {
-      let widthValue = effect.canvasWidth || 600;
-      let heightValue = effect.canvasHeight || 400;
+      let gridCols = effect.canvasGridCols || 25;
+      let gridRows = effect.canvasGridRows || 17;
       
-      // 범위 제한 (50-1000)
-      if (widthValue < 50) widthValue = 50;
-      if (widthValue > 1000) widthValue = 1000;
-      if (heightValue < 50) heightValue = 50;
-      if (heightValue > 1000) heightValue = 1000;
+      // 범위 제한 (5-100칸)
+      if (gridCols < 5) gridCols = 5;
+      if (gridCols > 100) gridCols = 100;
+      if (gridRows < 5) gridRows = 5;
+      if (gridRows > 100) gridRows = 100;
       
-      width = widthValue;
-      height = heightValue;
+      width = gridCols * GRID_SIZE;
+      height = gridRows * GRID_SIZE;
     } else {
-      // 단일 모드: 텍스트 크기에 맞춰 캔버스 크기 계산
+      // 단일 모드: 칸수 기반으로 캔버스 크기 계산
       const size = calculateCanvasSize(effect);
       width = size.width;
       height = size.height;

@@ -88,16 +88,22 @@ export function Canvas({ effect, onChange }: CanvasProps) {
     
     if (!canvas || !container || !imageLoaded) return;
 
-    // 다중 모드인 경우 미리보기 크기로 고정
+    // 칸수 기반으로 캔버스 크기 계산
+    const GRID_SIZE = 24;
+    
+    // 다중 모드인 경우 미리보기 칸수 사용
     if (effect.textMode === 'multiple') {
-      let canvasWidth = effect.canvasWidth || 600;
-      let canvasHeight = effect.canvasHeight || 400;
+      let gridCols = effect.canvasGridCols || 25;
+      let gridRows = effect.canvasGridRows || 17;
       
-      // 범위 제한 (50-1000)
-      if (canvasWidth < 50) canvasWidth = 50;
-      if (canvasWidth > 1000) canvasWidth = 1000;
-      if (canvasHeight < 50) canvasHeight = 50;
-      if (canvasHeight > 1000) canvasHeight = 1000;
+      // 범위 제한 (5-100칸)
+      if (gridCols < 5) gridCols = 5;
+      if (gridCols > 100) gridCols = 100;
+      if (gridRows < 5) gridRows = 5;
+      if (gridRows > 100) gridRows = 100;
+      
+      const canvasWidth = gridCols * GRID_SIZE;
+      const canvasHeight = gridRows * GRID_SIZE;
       
       // 컨테이너 크기 업데이트
       container.style.width = `${canvasWidth + 64}px`; // padding 포함 (2rem * 2 = 64px)
@@ -106,7 +112,6 @@ export function Canvas({ effect, onChange }: CanvasProps) {
       // 캔버스 해상도와 CSS 크기를 동일하게 설정 (스케일링 방지)
       canvas.width = canvasWidth;
       canvas.height = canvasHeight;
-      // CSS 크기를 정확히 설정하여 스케일링 방지
       canvas.style.width = `${canvasWidth}px`;
       canvas.style.height = `${canvasHeight}px`;
       canvas.style.maxWidth = 'none';
@@ -116,68 +121,11 @@ export function Canvas({ effect, onChange }: CanvasProps) {
       return;
     }
 
-    // 단일 모드: 텍스트 크기에 맞춰 캔버스 크기 계산
-    let { width: textWidth, height: textHeight } = calculateCanvasSize(effect);
+    // 단일 모드: 칸수 기반으로 캔버스 크기 계산
+    const { width, height } = calculateCanvasSize(effect);
     
-    // 배경 이미지가 있는 경우 실제 이미지 크기도 고려하되, 비율 유지
-    if (effect.backgroundImage?.enabled && effect.backgroundImage.imageUrl) {
-      const img = new Image();
-      img.src = effect.backgroundImage.imageUrl;
-      
-      const adjustCanvasSize = () => {
-        const imgWidth = img.width * effect.backgroundImage.scale;
-        const imgHeight = img.height * effect.backgroundImage.scale;
-        
-        // 텍스트를 기준으로 최대 크기 제한 (최대 3배까지만)
-        const maxWidth = textWidth * 3;
-        const maxHeight = textHeight * 3;
-        
-        // 이미지가 너무 크면 비율을 유지하며 제한
-        let finalImgWidth = imgWidth;
-        let finalImgHeight = imgHeight;
-        
-        if (imgWidth > maxWidth || imgHeight > maxHeight) {
-          const widthRatio = maxWidth / imgWidth;
-          const heightRatio = maxHeight / imgHeight;
-          const ratio = Math.min(widthRatio, heightRatio);
-          
-          finalImgWidth = imgWidth * ratio;
-          finalImgHeight = imgHeight * ratio;
-        }
-        
-        textWidth = Math.max(textWidth, finalImgWidth + 60); // 패딩 포함
-        textHeight = Math.max(textHeight, finalImgHeight + 60);
-      };
-      
-      if (img.complete) {
-        adjustCanvasSize();
-      } else {
-        img.onload = () => {
-          adjustCanvasSize();
-          
-          const containerWidth = container.offsetWidth;
-          const containerHeight = container.offsetHeight;
-          
-          const canvasWidth = Math.max(containerWidth, textWidth);
-          const canvasHeight = Math.max(containerHeight, textHeight);
-          
-          canvas.width = canvasWidth;
-          canvas.height = canvasHeight;
-          
-          drawTextOnCanvas(canvas, effect);
-        };
-      }
-    }
-    
-    // 컨테이너와 텍스트 크기 중 더 큰 값 사용
-    const containerWidth = container.offsetWidth;
-    const containerHeight = container.offsetHeight;
-    
-    const canvasWidth = Math.max(containerWidth, textWidth);
-    const canvasHeight = Math.max(containerHeight, textHeight);
-    
-    canvas.width = canvasWidth;
-    canvas.height = canvasHeight;
+    canvas.width = width;
+    canvas.height = height;
     
     // 단일 모드에서는 CSS 기본값 사용 (width: 100%, height: 300px)
     canvas.style.width = '';
@@ -186,7 +134,7 @@ export function Canvas({ effect, onChange }: CanvasProps) {
     canvas.style.maxHeight = '';
     
     drawTextOnCanvas(canvas, effect);
-  }, [effect, imageLoaded, effect.canvasWidth, effect.canvasHeight]);
+  }, [effect, imageLoaded, effect.gridCols, effect.gridRows, effect.canvasGridCols, effect.canvasGridRows]);
 
   return (
     <div className="canvas-wrapper">
@@ -197,60 +145,60 @@ export function Canvas({ effect, onChange }: CanvasProps) {
               <label className="canvas-size-label">가로:</label>
               <input
                 type="number"
-                min="50"
-                max="1000"
-                value={effect.canvasWidth || 600}
+                min="5"
+                max="100"
+                value={effect.canvasGridCols || 25}
                 onChange={(e) => {
                   if (!onChange) return;
                   const value = Number(e.target.value);
                   if (!isNaN(value)) {
-                    onChange({ canvasWidth: value });
+                    onChange({ canvasGridCols: value });
                   }
                 }}
                 onBlur={(e) => {
                   if (!onChange) return;
                   let value = Number(e.target.value);
-                  if (value < 50) value = 50;
-                  if (value > 1000) value = 1000;
+                  if (value < 5) value = 5;
+                  if (value > 100) value = 100;
                   if (!isNaN(value)) {
-                    onChange({ canvasWidth: value });
+                    onChange({ canvasGridCols: value });
                   }
                 }}
                 className="canvas-size-input-field"
               />
-              <span className="canvas-size-unit">px</span>
+              <span className="canvas-size-unit">칸 ({(effect.canvasGridCols || 25) * 24}px)</span>
             </div>
             <span className="canvas-size-separator">×</span>
             <div className="canvas-size-item">
               <label className="canvas-size-label">세로:</label>
               <input
                 type="number"
-                min="50"
-                max="1000"
-                value={effect.canvasHeight || 400}
+                min="5"
+                max="100"
+                value={effect.canvasGridRows || 17}
                 onChange={(e) => {
                   if (!onChange) return;
                   const value = Number(e.target.value);
                   if (!isNaN(value)) {
-                    onChange({ canvasHeight: value });
+                    onChange({ canvasGridRows: value });
                   }
                 }}
                 onBlur={(e) => {
                   if (!onChange) return;
                   let value = Number(e.target.value);
-                  if (value < 50) value = 50;
-                  if (value > 1000) value = 1000;
+                  if (value < 5) value = 5;
+                  if (value > 100) value = 100;
                   if (!isNaN(value)) {
-                    onChange({ canvasHeight: value });
+                    onChange({ canvasGridRows: value });
                   }
                 }}
                 className="canvas-size-input-field"
               />
-              <span className="canvas-size-unit">px</span>
+              <span className="canvas-size-unit">칸 ({(effect.canvasGridRows || 17) * 24}px)</span>
             </div>
           </div>
           <div className="canvas-description">
-            ⓘ 추가 문자열인 경우 고정된 크기로 만들어진다
+            ⓘ 추가 문자열인 경우 고정된 크기로 만들어진다 (24px 단위)
           </div>
         </div>
       )}

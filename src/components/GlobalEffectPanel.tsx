@@ -36,36 +36,36 @@ export function GlobalEffectPanel({ effect, onChange }: GlobalEffectPanelProps) 
         전역 효과
       </h3>
       
-      {/* 캔버스 여백 */}
+      {/* 캔버스 크기 (24px 단위) */}
       <div className="effect-group">
         <h4 style={{ marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: 600, color: '#666' }}>
-          캔버스 여백
+          캔버스 크기 (24px 단위)
         </h4>
         <div className="effect-row-3col">
           <div className="effect-group-inline">
             <label className="effect-label">
-              좌우 여백: {effect.paddingX}px
+              가로: {effect.gridCols}칸 ({effect.gridCols * 24}px)
             </label>
             <input
               type="range"
-              min="0"
-              max="200"
-              value={effect.paddingX}
-              onChange={(e) => handleGlobalChange({ paddingX: Number(e.target.value) })}
+              min="10"
+              max="100"
+              value={effect.gridCols}
+              onChange={(e) => handleGlobalChange({ gridCols: Number(e.target.value) })}
               className="effect-slider"
             />
           </div>
 
           <div className="effect-group-inline">
             <label className="effect-label">
-              상하 여백: {effect.paddingY}px
+              세로: {effect.gridRows}칸 ({effect.gridRows * 24}px)
             </label>
             <input
               type="range"
-              min="0"
-              max="200"
-              value={effect.paddingY}
-              onChange={(e) => handleGlobalChange({ paddingY: Number(e.target.value) })}
+              min="10"
+              max="100"
+              value={effect.gridRows}
+              onChange={(e) => handleGlobalChange({ gridRows: Number(e.target.value) })}
               className="effect-slider"
             />
           </div>

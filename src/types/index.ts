@@ -7,8 +7,8 @@ export interface TextEffect {
   fontSize: number;
   fontFamily: string;
   letterSpacing: number; // 자간 (em 단위)
-  paddingX: number; // 캔버스 좌우 여백 (px 단위)
-  paddingY: number; // 캔버스 상하 여백 (px 단위)
+  gridCols: number; // 캔버스 가로 칸수 (24px 단위)
+  gridRows: number; // 캔버스 세로 칸수 (24px 단위)
   
   // 색상
   textColor: string;
@@ -96,8 +96,8 @@ export interface TextEffect {
   };
   
   // 다중 모드 캔버스 크기 (multiple 모드에서 사용)
-  canvasWidth?: number; // 미리보기 가로 크기 (px)
-  canvasHeight?: number; // 미리보기 세로 크기 (px)
+  canvasGridCols?: number; // 미리보기 가로 칸수 (24px 단위)
+  canvasGridRows?: number; // 미리보기 세로 칸수 (24px 단위)
   
   // 다중 텍스트 블록 (multiple 모드)
   textBlocks?: Array<{
