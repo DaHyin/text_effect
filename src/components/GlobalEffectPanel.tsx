@@ -44,30 +44,74 @@ export function GlobalEffectPanel({ effect, onChange }: GlobalEffectPanelProps) 
         <div className="effect-row-3col">
           <div className="effect-group-inline">
             <label className="effect-label">
-              가로: {effect.gridCols}칸 ({effect.gridCols * 24}px)
+              가로 칸수
             </label>
             <input
-              type="range"
-              min="10"
-              max="100"
+              type="number"
+              min="1"
+              max="1000"
               value={effect.gridCols}
-              onChange={(e) => handleGlobalChange({ gridCols: Number(e.target.value) })}
-              className="effect-slider"
+              onChange={(e) => {
+                const value = Number(e.target.value);
+                if (!isNaN(value)) {
+                  handleGlobalChange({ gridCols: value });
+                }
+              }}
+              onBlur={(e) => {
+                let value = Number(e.target.value);
+                if (value < 1) value = 1;
+                if (value > 1000) value = 1000;
+                if (!isNaN(value)) {
+                  handleGlobalChange({ gridCols: value });
+                }
+              }}
+              style={{
+                width: '100%',
+                padding: '0.5rem',
+                border: '2px solid #e0e0e0',
+                borderRadius: '8px',
+                fontSize: '0.9rem',
+              }}
             />
+            <div style={{ fontSize: '0.8rem', color: '#666', marginTop: '0.25rem' }}>
+              {effect.gridCols}칸 ({effect.gridCols * 24}px)
+            </div>
           </div>
 
           <div className="effect-group-inline">
             <label className="effect-label">
-              세로: {effect.gridRows}칸 ({effect.gridRows * 24}px)
+              세로 칸수
             </label>
             <input
-              type="range"
-              min="10"
-              max="100"
+              type="number"
+              min="1"
+              max="1000"
               value={effect.gridRows}
-              onChange={(e) => handleGlobalChange({ gridRows: Number(e.target.value) })}
-              className="effect-slider"
+              onChange={(e) => {
+                const value = Number(e.target.value);
+                if (!isNaN(value)) {
+                  handleGlobalChange({ gridRows: value });
+                }
+              }}
+              onBlur={(e) => {
+                let value = Number(e.target.value);
+                if (value < 1) value = 1;
+                if (value > 1000) value = 1000;
+                if (!isNaN(value)) {
+                  handleGlobalChange({ gridRows: value });
+                }
+              }}
+              style={{
+                width: '100%',
+                padding: '0.5rem',
+                border: '2px solid #e0e0e0',
+                borderRadius: '8px',
+                fontSize: '0.9rem',
+              }}
             />
+            <div style={{ fontSize: '0.8rem', color: '#666', marginTop: '0.25rem' }}>
+              {effect.gridRows}칸 ({effect.gridRows * 24}px)
+            </div>
           </div>
         </div>
       </div>

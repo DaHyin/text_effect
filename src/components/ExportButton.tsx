@@ -23,14 +23,14 @@ export function ExportButton({ effect, scale = 1 }: ExportButtonProps) {
     let height: number;
     
     if (effect.textMode === 'multiple') {
-      let gridCols = effect.canvasGridCols || 25;
-      let gridRows = effect.canvasGridRows || 17;
+      let gridCols = effect.canvasGridCols || 4;
+      let gridRows = effect.canvasGridRows || 1;
       
-      // 범위 제한 (5-100칸)
-      if (gridCols < 5) gridCols = 5;
-      if (gridCols > 100) gridCols = 100;
-      if (gridRows < 5) gridRows = 5;
-      if (gridRows > 100) gridRows = 100;
+      // 범위 제한 (1-1000칸)
+      if (gridCols < 1) gridCols = 1;
+      if (gridCols > 1000) gridCols = 1000;
+      if (gridRows < 1) gridRows = 1;
+      if (gridRows > 1000) gridRows = 1000;
       
       width = gridCols * GRID_SIZE;
       height = gridRows * GRID_SIZE;

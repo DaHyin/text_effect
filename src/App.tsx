@@ -14,11 +14,11 @@ import './App.css';
 const initialEffect: TextEffect = {
   textMode: 'single',
   text: '텍스트 이펙트',
-  fontSize: 48,
+  fontSize: 14,
   fontFamily: 'Noto Sans KR',
   letterSpacing: 0,
-  gridCols: 25, // 가로 25칸 (600px)
-  gridRows: 17, // 세로 17칸 (408px, 그림자 등 여유 공간 포함)
+  gridCols: 4, // 가로 4칸 (96px)
+  gridRows: 1, // 세로 1칸 (24px)
   textColor: '#000000',
   useTextGradient: false,
   shadow: {

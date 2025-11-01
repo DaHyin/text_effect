@@ -12,23 +12,30 @@ export function calculateCanvasSize(effect: TextEffect): { width: number; height
 
 export function drawTextOnCanvas(
   canvas: HTMLCanvasElement,
-  effect: TextEffect
+  effect: TextEffect,
+  baseWidth?: number,
+  baseHeight?: number,
+  previewScale: number = 1
 ): void {
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
 
+  // 원본 크기 사용
+  const canvasBaseWidth = baseWidth ?? canvas.width;
+  const canvasBaseHeight = baseHeight ?? canvas.height;
+
   // 투명 배경
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   
-  // 캔버스 중심 위치 (칸수 기반이므로 패딩 없이 전체 사용)
-  const centerX = canvas.width / 2;
-  const centerY = canvas.height / 2;
+  // 캔버스 중심 위치 (previewScale 적용된 크기 기준)
+  const centerX = (canvasBaseWidth * previewScale) / 2;
+  const centerY = (canvasBaseHeight * previewScale) / 2;
   
-  // 텍스트 영역 (전체 캔버스 사용)
-  const textAreaWidth = canvas.width;
-  const textAreaHeight = canvas.height;
+  // 텍스트 영역 (previewScale 적용된 크기 기준)
+  const textAreaWidth = canvasBaseWidth * previewScale;
+  const textAreaHeight = canvasBaseHeight * previewScale;
   
-  const maxWidth = textAreaWidth - 20; // 약간의 여유
+  const maxWidth = textAreaWidth - 20 * previewScale; // 약간의 여유
 
   // 다중 모드 처리
   if (effect.textMode === 'multiple' && effect.textBlocks && effect.textBlocks.length > 0) {
@@ -39,10 +46,10 @@ export function drawTextOnCanvas(
       if (bgImg.complete) {
         ctx.save();
         ctx.globalAlpha = effect.backgroundImage.opacity;
-        const imgWidth = bgImg.width * effect.backgroundImage.scale;
-        const imgHeight = bgImg.height * effect.backgroundImage.scale;
-        const imgX = centerX + effect.backgroundImage.offsetX - imgWidth / 2;
-        const imgY = centerY + effect.backgroundImage.offsetY - imgHeight / 2;
+        const imgWidth = bgImg.width * effect.backgroundImage.scale * previewScale;
+        const imgHeight = bgImg.height * effect.backgroundImage.scale * previewScale;
+        const imgX = centerX + (effect.backgroundImage.offsetX * previewScale) - imgWidth / 2;
+        const imgY = centerY + (effect.backgroundImage.offsetY * previewScale) - imgHeight / 2;
         ctx.drawImage(bgImg, imgX, imgY, imgWidth, imgHeight);
         ctx.restore();
       }
@@ -50,28 +57,28 @@ export function drawTextOnCanvas(
 
     // 각 블록 렌더링 - 그림자 먼저 (가장 뒤 레이어)
     effect.textBlocks.forEach((block) => {
-      ctx.font = `${block.fontSize}px ${block.fontFamily}`;
+      ctx.font = `${block.fontSize * previewScale}px ${block.fontFamily}`;
       ctx.textBaseline = 'middle';
       ctx.textAlign = 'center';
       
-      const textX = centerX + block.offsetX;
-      const textY = centerY + block.offsetY;
+      const textX = centerX + (block.offsetX * previewScale);
+      const textY = centerY + (block.offsetY * previewScale);
       
       // 그림자 (가장 뒤)
       if (effect.shadow?.enabled) {
         ctx.save();
         ctx.fillStyle = effect.shadow.color;
-        ctx.shadowBlur = effect.shadow.blur * 2; // 블러 효과 강화
+        ctx.shadowBlur = (effect.shadow.blur * 2) * previewScale; // 블러 효과 강화
         ctx.shadowColor = effect.shadow.color;
         
-        const baseX = textX + effect.shadow.offsetX;
-        const baseY = textY + effect.shadow.offsetY;
+        const baseX = textX + (effect.shadow.offsetX * previewScale);
+        const baseY = textY + (effect.shadow.offsetY * previewScale);
         
         // 자간이 있으면 문자별 렌더링
         if (block.letterSpacing !== 0) {
           ctx.textAlign = 'left';
           const letters = block.text.split('');
-          const extraSpacing = block.letterSpacing * block.fontSize;
+          const extraSpacing = block.letterSpacing * (block.fontSize * previewScale);
           
           // 총 너비 계산
           let totalWidth = 0;
@@ -88,7 +95,7 @@ export function drawTextOnCanvas(
             
             // 확산 효과를 위해 여러 방향으로 그림자 그리기
             if (effect.shadow.blur > 0) {
-              const spread = Math.max(2, Math.ceil(effect.shadow.blur));
+              const spread = Math.max(2, Math.ceil(effect.shadow.blur * previewScale));
               ctx.globalAlpha = 0.6;
               for (let dx = -spread; dx <= spread; dx++) {
                 for (let dy = -spread; dy <= spread; dy++) {
@@ -111,7 +118,7 @@ export function drawTextOnCanvas(
         } else {
           // 확산 효과를 위해 여러 방향으로 그림자 그리기
           if (effect.shadow.blur > 0) {
-            const spread = Math.max(2, Math.ceil(effect.shadow.blur));
+            const spread = Math.max(2, Math.ceil(effect.shadow.blur * previewScale));
             ctx.globalAlpha = 0.6;
             for (let dx = -spread; dx <= spread; dx++) {
               for (let dy = -spread; dy <= spread; dy++) {
@@ -135,24 +142,24 @@ export function drawTextOnCanvas(
     
     // 각 블록 렌더링 - 테두리 (중간 레이어)
     effect.textBlocks.forEach((block) => {
-      ctx.font = `${block.fontSize}px ${block.fontFamily}`;
+      ctx.font = `${block.fontSize * previewScale}px ${block.fontFamily}`;
       ctx.textBaseline = 'middle';
       ctx.textAlign = 'center';
       
-      const textX = centerX + block.offsetX;
-      const textY = centerY + block.offsetY;
+      const textX = centerX + (block.offsetX * previewScale);
+      const textY = centerY + (block.offsetY * previewScale);
       
       // 테두리 (중간)
       if (block.stroke.enabled) {
         ctx.strokeStyle = block.stroke.color;
-        ctx.lineWidth = block.stroke.width;
+        ctx.lineWidth = block.stroke.width * previewScale;
         ctx.lineJoin = 'round';
         
         // 자간이 있으면 문자별 렌더링
         if (block.letterSpacing !== 0) {
           ctx.textAlign = 'left';
           const letters = block.text.split('');
-          const extraSpacing = block.letterSpacing * block.fontSize;
+          const extraSpacing = block.letterSpacing * (block.fontSize * previewScale);
           
           // 총 너비 계산
           let totalWidth = 0;
@@ -183,17 +190,17 @@ export function drawTextOnCanvas(
     const blockTextLayerCtx = blockTextLayerCanvas.getContext('2d')!;
     
     effect.textBlocks.forEach((block) => {
-      blockTextLayerCtx.font = `${block.fontSize}px ${block.fontFamily}`;
+      blockTextLayerCtx.font = `${block.fontSize * previewScale}px ${block.fontFamily}`;
       blockTextLayerCtx.textBaseline = 'middle';
       
-      const textX = centerX + block.offsetX;
-      const textY = centerY + block.offsetY;
+      const textX = centerX + (block.offsetX * previewScale);
+      const textY = centerY + (block.offsetY * previewScale);
       
       // 자간이 있으면 문자별 렌더링
       if (block.letterSpacing !== 0) {
         blockTextLayerCtx.textAlign = 'left';
         const letters = block.text.split('');
-        const extraSpacing = block.letterSpacing * block.fontSize;
+        const extraSpacing = block.letterSpacing * (block.fontSize * previewScale);
         
         // 총 너비 계산
         let totalWidth = 0;
@@ -230,10 +237,10 @@ export function drawTextOnCanvas(
               // 이미지 모양으로만 표시
               charCtx.globalCompositeOperation = 'source-in';
               
-              const imgWidth = img.width * block.imageFill.scale;
-              const imgHeight = img.height * block.imageFill.scale;
-              const imgX = currentX + block.imageFill.offsetX - imgWidth / 2;
-              const imgY = textY + block.imageFill.offsetY - imgHeight / 2;
+              const imgWidth = img.width * block.imageFill.scale * previewScale;
+              const imgHeight = img.height * block.imageFill.scale * previewScale;
+              const imgX = currentX + (block.imageFill.offsetX * previewScale) - imgWidth / 2;
+              const imgY = textY + (block.imageFill.offsetY * previewScale) - imgHeight / 2;
               
               charCtx.drawImage(img, imgX, imgY, imgWidth, imgHeight);
               charCtx.globalCompositeOperation = 'source-over';
@@ -272,10 +279,10 @@ export function drawTextOnCanvas(
               // 질감 이미지를 텍스트 모양으로만 표시
               textureCtx.globalCompositeOperation = 'source-in';
               
-              const imgWidth = textureImg.width * block.texture.scale;
-              const imgHeight = textureImg.height * block.texture.scale;
-              const imgX = currentX + block.texture.offsetX - imgWidth / 2;
-              const imgY = textY + block.texture.offsetY - imgHeight / 2;
+              const imgWidth = textureImg.width * block.texture.scale * previewScale;
+              const imgHeight = textureImg.height * block.texture.scale * previewScale;
+              const imgX = currentX + (block.texture.offsetX * previewScale) - imgWidth / 2;
+              const imgY = textY + (block.texture.offsetY * previewScale) - imgHeight / 2;
               
               textureCtx.drawImage(textureImg, imgX, imgY, imgWidth, imgHeight);
               textureCtx.globalCompositeOperation = 'source-over';
@@ -316,10 +323,10 @@ export function drawTextOnCanvas(
             // 이미지 모양으로만 표시
             blockCtx.globalCompositeOperation = 'source-in';
             
-            const imgWidth = img.width * block.imageFill.scale;
-            const imgHeight = img.height * block.imageFill.scale;
-            const imgX = textX + block.imageFill.offsetX - imgWidth / 2;
-            const imgY = textY + block.imageFill.offsetY - imgHeight / 2;
+            const imgWidth = img.width * block.imageFill.scale * previewScale;
+            const imgHeight = img.height * block.imageFill.scale * previewScale;
+            const imgX = textX + (block.imageFill.offsetX * previewScale) - imgWidth / 2;
+            const imgY = textY + (block.imageFill.offsetY * previewScale) - imgHeight / 2;
             
             blockCtx.drawImage(img, imgX, imgY, imgWidth, imgHeight);
             blockCtx.globalCompositeOperation = 'source-over';
@@ -358,10 +365,10 @@ export function drawTextOnCanvas(
             // 질감 이미지를 텍스트 모양으로만 표시
             textureCtx.globalCompositeOperation = 'source-in';
             
-            const imgWidth = textureImg.width * block.texture.scale;
-            const imgHeight = textureImg.height * block.texture.scale;
-            const imgX = textX + block.texture.offsetX - imgWidth / 2;
-            const imgY = textY + block.texture.offsetY - imgHeight / 2;
+            const imgWidth = textureImg.width * block.texture.scale * previewScale;
+            const imgHeight = textureImg.height * block.texture.scale * previewScale;
+            const imgX = textX + (block.texture.offsetX * previewScale) - imgWidth / 2;
+            const imgY = textY + (block.texture.offsetY * previewScale) - imgHeight / 2;
             
             textureCtx.drawImage(textureImg, imgX, imgY, imgWidth, imgHeight);
             textureCtx.globalCompositeOperation = 'source-over';
@@ -395,23 +402,23 @@ export function drawTextOnCanvas(
     if (bgImg.complete) {
       ctx.save();
       ctx.globalAlpha = effect.backgroundImage.opacity;
-      const imgWidth = bgImg.width * effect.backgroundImage.scale;
-      const imgHeight = bgImg.height * effect.backgroundImage.scale;
-      const imgX = centerX + effect.backgroundImage.offsetX - imgWidth / 2;
-      const imgY = centerY + effect.backgroundImage.offsetY - imgHeight / 2;
+      const imgWidth = bgImg.width * effect.backgroundImage.scale * previewScale;
+      const imgHeight = bgImg.height * effect.backgroundImage.scale * previewScale;
+      const imgX = centerX + (effect.backgroundImage.offsetX * previewScale) - imgWidth / 2;
+      const imgY = centerY + (effect.backgroundImage.offsetY * previewScale) - imgHeight / 2;
       ctx.drawImage(bgImg, imgX, imgY, imgWidth, imgHeight);
       ctx.restore();
     }
   }
   
-  ctx.font = `${effect.fontSize}px ${effect.fontFamily}`;
+  ctx.font = `${effect.fontSize * previewScale}px ${effect.fontFamily}`;
   ctx.textBaseline = 'middle';
   ctx.textAlign = 'center';
 
   // 자간이 있으면 문자별 렌더링
   if (effect.letterSpacing !== 0) {
     const letters = effect.text.split('');
-    const extraSpacing = effect.letterSpacing * effect.fontSize;
+    const extraSpacing = effect.letterSpacing * (effect.fontSize * previewScale);
     
     // 총 너비 계산
     let totalWidth = 0;
@@ -434,17 +441,17 @@ export function drawTextOnCanvas(
       shadowCtx.textBaseline = 'middle';
       shadowCtx.textAlign = 'left';
       shadowCtx.fillStyle = effect.shadow.color;
-      shadowCtx.shadowBlur = effect.shadow.blur * 2; // 블러 효과 강화
+      shadowCtx.shadowBlur = (effect.shadow.blur * 2) * previewScale; // 블러 효과 강화
       shadowCtx.shadowColor = effect.shadow.color;
       
       letters.forEach((char) => {
         const charWidth = ctx.measureText(char).width;
-        const baseX = currentX + effect.shadow.offsetX;
-        const baseY = centerY + effect.shadow.offsetY;
+        const baseX = currentX + (effect.shadow.offsetX * previewScale);
+        const baseY = centerY + (effect.shadow.offsetY * previewScale);
         
         // 확산 효과를 위해 여러 방향으로 그림자 그리기
         if (effect.shadow.blur > 0) {
-          const spread = Math.max(2, Math.ceil(effect.shadow.blur));
+          const spread = Math.max(2, Math.ceil(effect.shadow.blur * previewScale));
           shadowCtx.globalAlpha = 0.6;
           for (let dx = -spread; dx <= spread; dx++) {
             for (let dy = -spread; dy <= spread; dy++) {
@@ -475,7 +482,7 @@ export function drawTextOnCanvas(
       strokeCanvas.height = canvas.height;
       const strokeCtx = strokeCanvas.getContext('2d')!;
       strokeCtx.strokeStyle = effect.stroke.color;
-      strokeCtx.lineWidth = effect.stroke.width;
+      strokeCtx.lineWidth = effect.stroke.width * previewScale;
       strokeCtx.lineJoin = 'round';
       strokeCtx.font = ctx.font;
       strokeCtx.textBaseline = 'middle';
@@ -517,10 +524,10 @@ export function drawTextOnCanvas(
           textCtx.fillText(char, currentX, centerY);
           textCtx.globalCompositeOperation = 'source-in';
           
-          const imgWidth = img.width * effect.imageFill.scale;
-          const imgHeight = img.height * effect.imageFill.scale;
-          const imgX = currentX + effect.imageFill.offsetX - imgWidth / 2;
-          const imgY = centerY + effect.imageFill.offsetY - imgHeight / 2;
+          const imgWidth = img.width * effect.imageFill.scale * previewScale;
+          const imgHeight = img.height * effect.imageFill.scale * previewScale;
+          const imgX = currentX + (effect.imageFill.offsetX * previewScale) - imgWidth / 2;
+          const imgY = centerY + (effect.imageFill.offsetY * previewScale) - imgHeight / 2;
           
           textCtx.drawImage(img, imgX, imgY, imgWidth, imgHeight);
           textCtx.globalCompositeOperation = 'source-over';
@@ -571,10 +578,10 @@ export function drawTextOnCanvas(
           // 질감 이미지를 텍스트 모양으로만 표시
           textureCtx.globalCompositeOperation = 'source-in';
           
-          const imgWidth = textureImg.width * effect.texture.scale;
-          const imgHeight = textureImg.height * effect.texture.scale;
-          const imgX = currentX + effect.texture.offsetX - imgWidth / 2;
-          const imgY = centerY + effect.texture.offsetY - imgHeight / 2;
+          const imgWidth = textureImg.width * effect.texture.scale * previewScale;
+          const imgHeight = textureImg.height * effect.texture.scale * previewScale;
+          const imgX = currentX + (effect.texture.offsetX * previewScale) - imgWidth / 2;
+          const imgY = centerY + (effect.texture.offsetY * previewScale) - imgHeight / 2;
           
           textureCtx.drawImage(textureImg, imgX, imgY, imgWidth, imgHeight);
           textureCtx.globalCompositeOperation = 'source-over';
@@ -608,19 +615,19 @@ export function drawTextOnCanvas(
       shadowCanvas.width = canvas.width;
       shadowCanvas.height = canvas.height;
       const shadowCtx = shadowCanvas.getContext('2d')!;
-      shadowCtx.font = `${effect.fontSize}px ${effect.fontFamily}`;
+      shadowCtx.font = `${effect.fontSize * previewScale}px ${effect.fontFamily}`;
       shadowCtx.textBaseline = 'middle';
       shadowCtx.textAlign = 'center';
       shadowCtx.fillStyle = effect.shadow.color;
-      shadowCtx.shadowBlur = effect.shadow.blur * 2; // 블러 효과 강화
+      shadowCtx.shadowBlur = (effect.shadow.blur * 2) * previewScale; // 블러 효과 강화
       shadowCtx.shadowColor = effect.shadow.color;
       
-      const baseX = centerX + effect.shadow.offsetX;
-      const baseY = centerY + effect.shadow.offsetY;
+      const baseX = centerX + (effect.shadow.offsetX * previewScale);
+      const baseY = centerY + (effect.shadow.offsetY * previewScale);
       
       // 확산 효과를 위해 여러 방향으로 그림자 그리기
       if (effect.shadow.blur > 0) {
-        const spread = Math.max(2, Math.ceil(effect.shadow.blur));
+        const spread = Math.max(2, Math.ceil(effect.shadow.blur * previewScale));
         shadowCtx.globalAlpha = 0.6;
         for (let dx = -spread; dx <= spread; dx++) {
           for (let dy = -spread; dy <= spread; dy++) {
@@ -647,9 +654,9 @@ export function drawTextOnCanvas(
       strokeCanvas.height = canvas.height;
       const strokeCtx = strokeCanvas.getContext('2d')!;
       strokeCtx.strokeStyle = effect.stroke.color;
-      strokeCtx.lineWidth = effect.stroke.width;
+      strokeCtx.lineWidth = effect.stroke.width * previewScale;
       strokeCtx.lineJoin = 'round';
-      strokeCtx.font = `${effect.fontSize}px ${effect.fontFamily}`;
+      strokeCtx.font = `${effect.fontSize * previewScale}px ${effect.fontFamily}`;
       strokeCtx.textBaseline = 'middle';
       strokeCtx.textAlign = 'center';
       strokeCtx.strokeText(effect.text, centerX, centerY, maxWidth);
@@ -669,7 +676,7 @@ export function drawTextOnCanvas(
       if (img.complete) {
         // 텍스트를 검은색으로 그리기 (마스크)
         textLayerCtx.fillStyle = 'black';
-        textLayerCtx.font = `${effect.fontSize}px ${effect.fontFamily}`;
+        textLayerCtx.font = `${effect.fontSize * previewScale}px ${effect.fontFamily}`;
         textLayerCtx.textBaseline = 'middle';
         textLayerCtx.textAlign = 'center';
         textLayerCtx.fillText(effect.text, centerX, centerY, maxWidth);
@@ -677,10 +684,10 @@ export function drawTextOnCanvas(
         // 이미지 모양으로만 표시
         textLayerCtx.globalCompositeOperation = 'source-in';
         
-        const imgWidth = img.width * effect.imageFill.scale;
-        const imgHeight = img.height * effect.imageFill.scale;
-        const imgX = centerX + effect.imageFill.offsetX - imgWidth / 2;
-        const imgY = centerY + effect.imageFill.offsetY - imgHeight / 2;
+        const imgWidth = img.width * effect.imageFill.scale * previewScale;
+        const imgHeight = img.height * effect.imageFill.scale * previewScale;
+        const imgX = centerX + (effect.imageFill.offsetX * previewScale) - imgWidth / 2;
+        const imgY = centerY + (effect.imageFill.offsetY * previewScale) - imgHeight / 2;
         
         textLayerCtx.drawImage(img, imgX, imgY, imgWidth, imgHeight);
         textLayerCtx.globalCompositeOperation = 'source-over';
@@ -693,7 +700,7 @@ export function drawTextOnCanvas(
             : createRadialGradient(textLayerCtx, canvas.width, canvas.height, effect.gradient);
           fillStyle = gradient;
         }
-        textLayerCtx.font = `${effect.fontSize}px ${effect.fontFamily}`;
+        textLayerCtx.font = `${effect.fontSize * previewScale}px ${effect.fontFamily}`;
         textLayerCtx.textBaseline = 'middle';
         textLayerCtx.textAlign = 'center';
         textLayerCtx.fillStyle = fillStyle;
@@ -708,7 +715,7 @@ export function drawTextOnCanvas(
           : createRadialGradient(textLayerCtx, canvas.width, canvas.height, effect.gradient);
         fillStyle = gradient;
       }
-      textLayerCtx.font = `${effect.fontSize}px ${effect.fontFamily}`;
+      textLayerCtx.font = `${effect.fontSize * previewScale}px ${effect.fontFamily}`;
       textLayerCtx.textBaseline = 'middle';
       textLayerCtx.textAlign = 'center';
       textLayerCtx.fillStyle = fillStyle;
@@ -728,7 +735,7 @@ export function drawTextOnCanvas(
         
         // 텍스트를 검은색으로 마스크 생성
         textureCtx.fillStyle = 'black';
-        textureCtx.font = `${effect.fontSize}px ${effect.fontFamily}`;
+        textureCtx.font = `${effect.fontSize * previewScale}px ${effect.fontFamily}`;
         textureCtx.textBaseline = 'middle';
         textureCtx.textAlign = 'center';
         textureCtx.fillText(effect.text, centerX, centerY, maxWidth);
@@ -736,10 +743,10 @@ export function drawTextOnCanvas(
         // 질감 이미지를 텍스트 모양으로만 표시
         textureCtx.globalCompositeOperation = 'source-in';
         
-        const imgWidth = textureImg.width * effect.texture.scale;
-        const imgHeight = textureImg.height * effect.texture.scale;
-        const imgX = centerX + effect.texture.offsetX - imgWidth / 2;
-        const imgY = centerY + effect.texture.offsetY - imgHeight / 2;
+        const imgWidth = textureImg.width * effect.texture.scale * previewScale;
+        const imgHeight = textureImg.height * effect.texture.scale * previewScale;
+        const imgX = centerX + (effect.texture.offsetX * previewScale) - imgWidth / 2;
+        const imgY = centerY + (effect.texture.offsetY * previewScale) - imgHeight / 2;
         
         textureCtx.drawImage(textureImg, imgX, imgY, imgWidth, imgHeight);
         textureCtx.globalCompositeOperation = 'source-over';

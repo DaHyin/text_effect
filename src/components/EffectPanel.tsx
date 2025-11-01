@@ -81,8 +81,8 @@ export function EffectPanel({ effect, onChange }: EffectPanelProps) {
           </label>
           <input
             type="range"
-            min="24"
-            max="200"
+            min="7"
+            max="100"
             value={effect.fontSize}
             onChange={(e) => onChange({ fontSize: Number(e.target.value) })}
             className="effect-slider"
@@ -128,34 +128,78 @@ export function EffectPanel({ effect, onChange }: EffectPanelProps) {
         </div>
       </div>
 
-      {/* 캔버스 여백 */}
+      {/* 캔버스 크기 (24px 단위) */}
       <div className="effect-row-3col">
         <div className="effect-group-inline">
           <label className="effect-label">
-            좌우 여백: {effect.paddingX}px
+            가로 칸수
           </label>
           <input
-            type="range"
-            min="0"
-            max="200"
-            value={effect.paddingX}
-            onChange={(e) => onChange({ paddingX: Number(e.target.value) })}
-            className="effect-slider"
+            type="number"
+            min="1"
+            max="1000"
+            value={effect.gridCols}
+            onChange={(e) => {
+              const value = Number(e.target.value);
+              if (!isNaN(value)) {
+                onChange({ gridCols: value });
+              }
+            }}
+            onBlur={(e) => {
+              let value = Number(e.target.value);
+              if (value < 1) value = 1;
+              if (value > 1000) value = 1000;
+              if (!isNaN(value)) {
+                onChange({ gridCols: value });
+              }
+            }}
+            style={{
+              width: '100%',
+              padding: '0.5rem',
+              border: '2px solid #e0e0e0',
+              borderRadius: '8px',
+              fontSize: '0.9rem',
+            }}
           />
+          <div style={{ fontSize: '0.8rem', color: '#666', marginTop: '0.25rem' }}>
+            {effect.gridCols}칸 ({effect.gridCols * 24}px)
+          </div>
         </div>
 
         <div className="effect-group-inline">
           <label className="effect-label">
-            상하 여백: {effect.paddingY}px
+            세로 칸수
           </label>
           <input
-            type="range"
-            min="0"
-            max="200"
-            value={effect.paddingY}
-            onChange={(e) => onChange({ paddingY: Number(e.target.value) })}
-            className="effect-slider"
+            type="number"
+            min="1"
+            max="1000"
+            value={effect.gridRows}
+            onChange={(e) => {
+              const value = Number(e.target.value);
+              if (!isNaN(value)) {
+                onChange({ gridRows: value });
+              }
+            }}
+            onBlur={(e) => {
+              let value = Number(e.target.value);
+              if (value < 1) value = 1;
+              if (value > 1000) value = 1000;
+              if (!isNaN(value)) {
+                onChange({ gridRows: value });
+              }
+            }}
+            style={{
+              width: '100%',
+              padding: '0.5rem',
+              border: '2px solid #e0e0e0',
+              borderRadius: '8px',
+              fontSize: '0.9rem',
+            }}
           />
+          <div style={{ fontSize: '0.8rem', color: '#666', marginTop: '0.25rem' }}>
+            {effect.gridRows}칸 ({effect.gridRows * 24}px)
+          </div>
         </div>
       </div>
 
