@@ -93,19 +93,18 @@ export function drawTextOnCanvas(
           letters.forEach((char) => {
             const charWidth = ctx.measureText(char).width;
             
-            // 확산 효과를 위해 여러 방향으로 그림자 그리기
+            // 확산 효과를 위해 여러 방향으로 그림자 그리기 (최적화: spread 제한)
             if (effect.shadow.blur > 0) {
-              const spread = Math.max(2, Math.ceil(effect.shadow.blur * previewScale));
+              const spread = Math.min(Math.max(2, Math.ceil(effect.shadow.blur * previewScale)), 8); // 최대 8로 제한
               ctx.globalAlpha = 0.6;
-              for (let dx = -spread; dx <= spread; dx++) {
-                for (let dy = -spread; dy <= spread; dy++) {
-                  if (dx === 0 && dy === 0) continue;
-                  const distance = Math.sqrt(dx * dx + dy * dy);
-                  if (distance <= spread) {
-                    ctx.globalAlpha = 0.5 * (1 - distance / (spread + 1));
-                    ctx.fillText(char, currentX + dx, baseY + dy);
-                  }
-                }
+              // 간소화: 8방향만 그리기 (성능 최적화)
+              const directions = [
+                [-1, 0], [1, 0], [0, -1], [0, 1],
+                [-1, -1], [1, -1], [-1, 1], [1, 1]
+              ];
+              for (const [dx, dy] of directions) {
+                ctx.globalAlpha = 0.5 * (1 - Math.sqrt(dx * dx + dy * dy) / (spread + 1));
+                ctx.fillText(char, currentX + dx * spread, baseY + dy * spread);
               }
             }
             
@@ -116,19 +115,18 @@ export function drawTextOnCanvas(
             currentX += charWidth + extraSpacing;
           });
         } else {
-          // 확산 효과를 위해 여러 방향으로 그림자 그리기
+          // 확산 효과를 위해 여러 방향으로 그림자 그리기 (최적화: spread 제한)
           if (effect.shadow.blur > 0) {
-            const spread = Math.max(2, Math.ceil(effect.shadow.blur * previewScale));
+            const spread = Math.min(Math.max(2, Math.ceil(effect.shadow.blur * previewScale)), 8); // 최대 8로 제한
             ctx.globalAlpha = 0.6;
-            for (let dx = -spread; dx <= spread; dx++) {
-              for (let dy = -spread; dy <= spread; dy++) {
-                if (dx === 0 && dy === 0) continue;
-                const distance = Math.sqrt(dx * dx + dy * dy);
-                if (distance <= spread) {
-                  ctx.globalAlpha = 0.5 * (1 - distance / (spread + 1));
-                  ctx.fillText(block.text, baseX + dx, baseY + dy);
-                }
-              }
+            // 간소화: 8방향만 그리기 (성능 최적화)
+            const directions = [
+              [-1, 0], [1, 0], [0, -1], [0, 1],
+              [-1, -1], [1, -1], [-1, 1], [1, 1]
+            ];
+            for (const [dx, dy] of directions) {
+              ctx.globalAlpha = 0.5 * (1 - Math.sqrt(dx * dx + dy * dy) / (spread + 1));
+              ctx.fillText(block.text, baseX + dx * spread, baseY + dy * spread);
             }
           }
           
@@ -212,24 +210,24 @@ export function drawTextOnCanvas(
         const startX = textX - totalWidth / 2;
         let currentX = startX;
         
-        // 각 문자별로 텍스트/이미지 채우기 렌더링
+        // 각 문자별로 텍스트/이미지 채우기 렌더링 (최적화: 임시 캔버스 최소화)
         letters.forEach((char) => {
           const charWidth = blockTextLayerCtx.measureText(char).width;
           
-          // 문자용 임시 캔버스
-          const charCanvas = document.createElement('canvas');
-          charCanvas.width = canvas.width;
-          charCanvas.height = canvas.height;
-          const charCtx = charCanvas.getContext('2d')!;
-          charCtx.font = blockTextLayerCtx.font;
-          charCtx.textBaseline = 'middle';
-          charCtx.textAlign = 'left';
-          
-          // 이미지 채우기
+          // 이미지 채우기가 있는 경우에만 임시 캔버스 사용
           if (block.imageFill.enabled && block.imageFill.imageUrl) {
             const img = new Image();
             img.src = block.imageFill.imageUrl;
             if (img.complete) {
+              // 문자용 임시 캔버스 (필요한 경우에만 생성)
+              const charCanvas = document.createElement('canvas');
+              charCanvas.width = canvas.width;
+              charCanvas.height = canvas.height;
+              const charCtx = charCanvas.getContext('2d')!;
+              charCtx.font = blockTextLayerCtx.font;
+              charCtx.textBaseline = 'middle';
+              charCtx.textAlign = 'left';
+              
               // 텍스트를 검은색으로 그리기 (마스크)
               charCtx.fillStyle = 'black';
               charCtx.fillText(char, currentX, textY);
@@ -244,21 +242,21 @@ export function drawTextOnCanvas(
               
               charCtx.drawImage(img, imgX, imgY, imgWidth, imgHeight);
               charCtx.globalCompositeOperation = 'source-over';
+              
+              // 문자 캔버스를 블록 텍스트 레이어에 그리기
+              blockTextLayerCtx.drawImage(charCanvas, 0, 0);
             } else {
-              // 이미지 로딩 중 - 기본 색상 사용
-              charCtx.fillStyle = block.textColor;
-              charCtx.fillText(char, currentX, textY);
+              // 이미지 로딩 중 - 기본 색상 사용 (직접 그리기)
+              blockTextLayerCtx.fillStyle = block.textColor;
+              blockTextLayerCtx.fillText(char, currentX, textY);
             }
           } else {
-            // 일반 텍스트 렌더링
-            charCtx.fillStyle = block.textColor;
-            charCtx.fillText(char, currentX, textY);
+            // 일반 텍스트 렌더링 (직접 그리기, 임시 캔버스 불필요)
+            blockTextLayerCtx.fillStyle = block.textColor;
+            blockTextLayerCtx.fillText(char, currentX, textY);
           }
           
-          // 문자 캔버스를 블록 텍스트 레이어에 그리기
-          blockTextLayerCtx.drawImage(charCanvas, 0, 0);
-          
-          // 질감 효과 처리
+          // 질감 효과 처리 (임시 캔버스 사용)
           if (block.texture.enabled && block.texture.imageUrl) {
             const textureImg = new Image();
             textureImg.src = block.texture.imageUrl;
@@ -449,19 +447,18 @@ export function drawTextOnCanvas(
         const baseX = currentX + (effect.shadow.offsetX * previewScale);
         const baseY = centerY + (effect.shadow.offsetY * previewScale);
         
-        // 확산 효과를 위해 여러 방향으로 그림자 그리기
+        // 확산 효과를 위해 여러 방향으로 그림자 그리기 (최적화: spread 제한)
         if (effect.shadow.blur > 0) {
-          const spread = Math.max(2, Math.ceil(effect.shadow.blur * previewScale));
+          const spread = Math.min(Math.max(2, Math.ceil(effect.shadow.blur * previewScale)), 8); // 최대 8로 제한
           shadowCtx.globalAlpha = 0.6;
-          for (let dx = -spread; dx <= spread; dx++) {
-            for (let dy = -spread; dy <= spread; dy++) {
-              if (dx === 0 && dy === 0) continue;
-              const distance = Math.sqrt(dx * dx + dy * dy);
-              if (distance <= spread) {
-                shadowCtx.globalAlpha = 0.5 * (1 - distance / (spread + 1));
-                shadowCtx.fillText(char, baseX + dx, baseY + dy);
-              }
-            }
+          // 간소화: 8방향만 그리기 (성능 최적화)
+          const directions = [
+            [-1, 0], [1, 0], [0, -1], [0, 1],
+            [-1, -1], [1, -1], [-1, 1], [1, 1]
+          ];
+          for (const [dx, dy] of directions) {
+            shadowCtx.globalAlpha = 0.5 * (1 - Math.sqrt(dx * dx + dy * dy) / (spread + 1));
+            shadowCtx.fillText(char, baseX + dx * spread, baseY + dy * spread);
           }
         }
         
@@ -506,20 +503,20 @@ export function drawTextOnCanvas(
     letters.forEach((char) => {
       const charWidth = ctx.measureText(char).width;
       
-      // 텍스트 렌더링을 위한 임시 캔버스
-      const textCanvas = document.createElement('canvas');
-      textCanvas.width = canvas.width;
-      textCanvas.height = canvas.height;
-      const textCtx = textCanvas.getContext('2d')!;
-      textCtx.font = ctx.font;
-      textCtx.textBaseline = 'middle';
-      textCtx.textAlign = 'left';
-      
-      // 이미지 채우기 또는 그라디언트/단색
+      // 이미지 채우기가 있는 경우에만 임시 캔버스 사용
       if (effect.imageFill.enabled && effect.imageFill.imageUrl) {
         const img = new Image();
         img.src = effect.imageFill.imageUrl;
         if (img.complete) {
+          // 텍스트 렌더링을 위한 임시 캔버스
+          const textCanvas = document.createElement('canvas');
+          textCanvas.width = canvas.width;
+          textCanvas.height = canvas.height;
+          const textCtx = textCanvas.getContext('2d')!;
+          textCtx.font = ctx.font;
+          textCtx.textBaseline = 'middle';
+          textCtx.textAlign = 'left';
+          
           textCtx.fillStyle = 'black';
           textCtx.fillText(char, currentX, centerY);
           textCtx.globalCompositeOperation = 'source-in';
@@ -531,31 +528,33 @@ export function drawTextOnCanvas(
           
           textCtx.drawImage(img, imgX, imgY, imgWidth, imgHeight);
           textCtx.globalCompositeOperation = 'source-over';
+          
+          // 텍스트 캔버스를 텍스트 레이어 캔버스에 그리기
+          textLayerCtx.drawImage(textCanvas, 0, 0);
         } else {
+          // 이미지 로딩 중 - 기본 색상 사용 (직접 그리기)
           let fillStyle: string | CanvasGradient = effect.textColor;
           if (effect.useTextGradient && effect.gradient && effect.gradient.colors.length >= 2) {
             const gradient = effect.gradient.type === 'linear'
-              ? createLinearGradient(textCtx, canvas.width, canvas.height, effect.gradient)
-              : createRadialGradient(textCtx, canvas.width, canvas.height, effect.gradient);
+              ? createLinearGradient(textLayerCtx, canvas.width, canvas.height, effect.gradient)
+              : createRadialGradient(textLayerCtx, canvas.width, canvas.height, effect.gradient);
             fillStyle = gradient;
           }
-          textCtx.fillStyle = fillStyle;
-          textCtx.fillText(char, currentX, centerY);
+          textLayerCtx.fillStyle = fillStyle;
+          textLayerCtx.fillText(char, currentX, centerY);
         }
       } else {
+        // 일반 텍스트 렌더링 (직접 그리기, 임시 캔버스 불필요)
         let fillStyle: string | CanvasGradient = effect.textColor;
         if (effect.useTextGradient && effect.gradient && effect.gradient.colors.length >= 2) {
           const gradient = effect.gradient.type === 'linear'
-            ? createLinearGradient(textCtx, canvas.width, canvas.height, effect.gradient)
-            : createRadialGradient(textCtx, canvas.width, canvas.height, effect.gradient);
+            ? createLinearGradient(textLayerCtx, canvas.width, canvas.height, effect.gradient)
+            : createRadialGradient(textLayerCtx, canvas.width, canvas.height, effect.gradient);
           fillStyle = gradient;
         }
-        textCtx.fillStyle = fillStyle;
-        textCtx.fillText(char, currentX, centerY);
+        textLayerCtx.fillStyle = fillStyle;
+        textLayerCtx.fillText(char, currentX, centerY);
       }
-      
-      // 텍스트 캔버스를 텍스트 레이어 캔버스에 그리기
-      textLayerCtx.drawImage(textCanvas, 0, 0);
       
       // 질감 효과 처리 (텍스트 위에 블렌딩)
       if (effect.texture.enabled && effect.texture.imageUrl) {
@@ -625,19 +624,18 @@ export function drawTextOnCanvas(
       const baseX = centerX + (effect.shadow.offsetX * previewScale);
       const baseY = centerY + (effect.shadow.offsetY * previewScale);
       
-      // 확산 효과를 위해 여러 방향으로 그림자 그리기
+      // 확산 효과를 위해 여러 방향으로 그림자 그리기 (최적화: spread 제한)
       if (effect.shadow.blur > 0) {
-        const spread = Math.max(2, Math.ceil(effect.shadow.blur * previewScale));
+        const spread = Math.min(Math.max(2, Math.ceil(effect.shadow.blur * previewScale)), 8); // 최대 8로 제한
         shadowCtx.globalAlpha = 0.6;
-        for (let dx = -spread; dx <= spread; dx++) {
-          for (let dy = -spread; dy <= spread; dy++) {
-            if (dx === 0 && dy === 0) continue;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-            if (distance <= spread) {
-              shadowCtx.globalAlpha = 0.5 * (1 - distance / (spread + 1));
-              shadowCtx.fillText(effect.text, baseX + dx, baseY + dy, maxWidth);
-            }
-          }
+        // 간소화: 8방향만 그리기 (성능 최적화)
+        const directions = [
+          [-1, 0], [1, 0], [0, -1], [0, 1],
+          [-1, -1], [1, -1], [-1, 1], [1, 1]
+        ];
+        for (const [dx, dy] of directions) {
+          shadowCtx.globalAlpha = 0.5 * (1 - Math.sqrt(dx * dx + dy * dy) / (spread + 1));
+          shadowCtx.fillText(effect.text, baseX + dx * spread, baseY + dy * spread, maxWidth);
         }
       }
       

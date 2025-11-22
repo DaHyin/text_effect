@@ -19,6 +19,7 @@ export function ExportButton({ effect, scale = 1 }: ExportButtonProps) {
 
     // 칸수 기반으로 캔버스 크기 계산
     const GRID_SIZE = 24;
+    const MAX_CANVAS_SIZE = 1000; // 최대 캔버스 크기 (px) - 메모리 최적화
     let width: number;
     let height: number;
     
@@ -40,6 +41,10 @@ export function ExportButton({ effect, scale = 1 }: ExportButtonProps) {
       width = size.width;
       height = size.height;
     }
+    
+    // 캔버스 크기 제한 (메모리 최적화)
+    width = Math.min(width, MAX_CANVAS_SIZE);
+    height = Math.min(height, MAX_CANVAS_SIZE);
     
     canvas.width = width;
     canvas.height = height;

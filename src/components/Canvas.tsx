@@ -120,24 +120,32 @@ export function Canvas({ effect, onChange }: CanvasProps) {
     const availableWidth = container.offsetWidth - containerPadding * 2;
     const availableHeight = container.offsetHeight - containerPadding * 2;
     
+    // 캔버스 크기 제한 (메모리 최적화)
+    const MAX_CANVAS_SIZE = 1000; // 최대 캔버스 크기 (px)
+    const MAX_PREVIEW_SCALE = 2; // 최대 확대 배율 (메모리 최적화)
+    
+    // 원본 크기가 너무 크면 제한
+    let limitedCanvasWidth = Math.min(canvasWidth, MAX_CANVAS_SIZE);
+    let limitedCanvasHeight = Math.min(canvasHeight, MAX_CANVAS_SIZE);
+    
     // 스케일 계산
     let calculatedScale = 1;
     let renderScale = 1; // 실제 렌더링 해상도 배율
     
-    if (canvasWidth < availableWidth && canvasHeight < availableHeight) {
+    if (limitedCanvasWidth < availableWidth && limitedCanvasHeight < availableHeight) {
       // 캔버스가 작으면 확대 (2배, 3배, 4배...)
-      const widthScale = availableWidth / canvasWidth;
-      const heightScale = availableHeight / canvasHeight;
+      const widthScale = availableWidth / limitedCanvasWidth;
+      const heightScale = availableHeight / limitedCanvasHeight;
       const maxScale = Math.min(widthScale, heightScale);
       
-      // 2배, 3배, 4배 등으로 확대 (최대한 크게)
-      calculatedScale = Math.max(2, Math.floor(maxScale));
-      // 화질 개선: 확대 시 해상도를 높여서 렌더링 (최대 4배까지)
-      renderScale = Math.min(calculatedScale, 4);
-    } else if (canvasWidth > availableWidth || canvasHeight > availableHeight) {
+      // 2배, 3배, 4배 등으로 확대 (최대 2배로 제한)
+      calculatedScale = Math.min(Math.max(2, Math.floor(maxScale)), MAX_PREVIEW_SCALE);
+      // 화질 개선: 확대 시 해상도를 높여서 렌더링 (최대 2배까지)
+      renderScale = Math.min(calculatedScale, MAX_PREVIEW_SCALE);
+    } else if (limitedCanvasWidth > availableWidth || limitedCanvasHeight > availableHeight) {
       // 캔버스가 크면 축소 (1/2, 1/4, 1/8...)
-      const widthScale = availableWidth / canvasWidth;
-      const heightScale = availableHeight / canvasHeight;
+      const widthScale = availableWidth / limitedCanvasWidth;
+      const heightScale = availableHeight / limitedCanvasHeight;
       const minScale = Math.min(widthScale, heightScale);
       
       // 1/2, 1/4, 1/8 등으로 축소
@@ -152,11 +160,11 @@ export function Canvas({ effect, onChange }: CanvasProps) {
     setScale(calculatedScale);
     
     // previewScale: 확대 시 실제 크기로 렌더링, 축소 시는 1 (CSS로 축소)
-    const previewScale = calculatedScale > 1 ? calculatedScale : 1;
+    const previewScale = calculatedScale > 1 ? Math.min(calculatedScale, MAX_PREVIEW_SCALE) : 1;
     
-    // 캔버스 해상도 설정 (확대 시 실제 크기로 렌더링)
-    const renderWidth = canvasWidth * previewScale;
-    const renderHeight = canvasHeight * previewScale;
+    // 캔버스 해상도 설정 (확대 시 실제 크기로 렌더링, 최대 크기 제한)
+    const renderWidth = Math.min(limitedCanvasWidth * previewScale, MAX_CANVAS_SIZE * MAX_PREVIEW_SCALE);
+    const renderHeight = Math.min(limitedCanvasHeight * previewScale, MAX_CANVAS_SIZE * MAX_PREVIEW_SCALE);
     
     canvas.width = renderWidth;
     canvas.height = renderHeight;
@@ -170,18 +178,18 @@ export function Canvas({ effect, onChange }: CanvasProps) {
     }
     
     // 캔버스 CSS 크기 설정 (표시 크기)
-    const displayWidth = canvasWidth * calculatedScale;
-    const displayHeight = canvasHeight * calculatedScale;
+    const displayWidth = limitedCanvasWidth * calculatedScale;
+    const displayHeight = limitedCanvasHeight * calculatedScale;
     
     canvas.style.width = `${displayWidth}px`;
     canvas.style.height = `${displayHeight}px`;
-    canvas.style.maxWidth = 'none';
-    canvas.style.maxHeight = 'none';
+    canvas.style.maxWidth = '100%'; // 컨테이너를 넘지 않도록 제한
+    canvas.style.maxHeight = '100%';
     canvas.style.margin = '0 auto'; // 중앙 정렬
     canvas.style.display = 'block';
     
     // drawTextOnCanvas 호출 (previewScale 전달하여 실제 크기로 렌더링)
-    drawTextOnCanvas(canvas, effect, canvasWidth, canvasHeight, previewScale);
+    drawTextOnCanvas(canvas, effect, limitedCanvasWidth, limitedCanvasHeight, previewScale);
   }, [effect, imageLoaded, effect.gridCols, effect.gridRows, effect.canvasGridCols, effect.canvasGridRows]);
 
   return (
